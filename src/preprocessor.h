@@ -53,6 +53,13 @@
 #include <cassert>
 #define TCPP_ASSERT(assertion) assert(assertion)
 
+std::string replace_all(std::string str, const std::string& const match, const std::string& const replacement)
+{
+    for(size_t index = str.find(match, 0); index != std::string::npos && match.length(); index = str.find(match, index + replacement.length()))
+        str.replace(index, match.length(), replacement);
+    return str;
+}
+
 /*!
         interface IInputStream
         \brief The interface describes the functionality that all input streams
@@ -421,7 +428,7 @@ TToken Lexer::GetNextToken() TCPP_NOEXCEPT {
         }
     }
 
-    mCurrLine = _removeMultiLineComments(mCurrLine);
+    // mCurrLine = _removeMultiLineComments(mCurrLine);
     return _scanTokens(mCurrLine);
 }
 
@@ -687,7 +694,7 @@ std::string Lexer::_requestSourceLine() TCPP_NOEXCEPT {
     }
 
     std::string sourceLine =
-            _removeSingleLineComment(pCurrInputStream->ReadLine());
+            pCurrInputStream->ReadLine(); // _removeSingleLineComment(pCurrInputStream->ReadLine());
     ++mCurrLineIndex;
 
     /// \note join lines that were splitted with backslash sign
@@ -706,18 +713,18 @@ std::string Lexer::_requestSourceLine() TCPP_NOEXCEPT {
     }
 
     // remove redundant whitespaces
-    {
-        bool isPrevChWhitespace = false;
-        sourceLine.erase(
-                std::remove_if(sourceLine.begin(), sourceLine.end(),
-                               [&isPrevChWhitespace](char ch) {
-                                   bool shouldReplace =
-                                           (ch == ' ' || ch == '\t') && isPrevChWhitespace;
-                                   isPrevChWhitespace = (ch == ' ' || ch == '\t');
-                                   return shouldReplace;
-                               }),
-                sourceLine.end());
-    }
+    // {
+    //     bool isPrevChWhitespace = false;
+    //     sourceLine.erase(
+    //             std::remove_if(sourceLine.begin(), sourceLine.end(),
+    //                            [&isPrevChWhitespace](char ch) {
+    //                                bool shouldReplace =
+    //                                        (ch == ' ' || ch == '\t') && isPrevChWhitespace;
+    //                                isPrevChWhitespace = (ch == ' ' || ch == '\t');
+    //                                return shouldReplace;
+    //                            }),
+    //             sourceLine.end());
+    // }
 
     return sourceLine;
 }
@@ -916,7 +923,7 @@ std::string Preprocessor::Process() TCPP_NOEXCEPT {
                 appendString((currToken = mpLexer->GetNextToken()).mRawView);
                 break;
             case E_TOKEN_TYPE::STRINGIZE_OP:
-                appendString((currToken = mpLexer->GetNextToken()).mRawView);
+                appendString(std::string("\"") + replace_all((currToken = mpLexer->GetNextToken()).mRawView, "\"", "\\\"") + "\"");
                 break;
             case E_TOKEN_TYPE::CUSTOM_DIRECTIVE: {
                 auto customDirectiveIter =

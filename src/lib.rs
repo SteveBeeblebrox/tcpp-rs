@@ -64,6 +64,8 @@ unsafe extern "C" fn callback_include<F: FnMut(String, bool) -> ffi::IInputStrea
 /// ```
 /// use tcpp::*;
 /// use tcpp::ffi::*;
+/// use std::fs::*;
+/// use std::io::*;
 ///
 /// fn main() {
 ///     // read content from source file
@@ -78,6 +80,8 @@ unsafe extern "C" fn callback_include<F: FnMut(String, bool) -> ffi::IInputStrea
 ///             // we just ignore inclusions and returns a default (null) stream
 ///             IInputStream::default()
 ///         });
+///     let mut output = File::create("output.txt").unwrap();
+///     write!(output, "{}", result.unwrap());
 /// }
 /// ```
 ///
