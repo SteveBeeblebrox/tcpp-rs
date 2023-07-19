@@ -712,20 +712,6 @@ std::string Lexer::_requestSourceLine() TCPP_NOEXCEPT {
         sourceLine.erase(sourceLine.begin() + pos, sourceLine.end());
     }
 
-    // remove redundant whitespaces
-    // {
-    //     bool isPrevChWhitespace = false;
-    //     sourceLine.erase(
-    //             std::remove_if(sourceLine.begin(), sourceLine.end(),
-    //                            [&isPrevChWhitespace](char ch) {
-    //                                bool shouldReplace =
-    //                                        (ch == ' ' || ch == '\t') && isPrevChWhitespace;
-    //                                isPrevChWhitespace = (ch == ' ' || ch == '\t');
-    //                                return shouldReplace;
-    //                            }),
-    //             sourceLine.end());
-    // }
-
     return sourceLine;
 }
 
@@ -1089,11 +1075,11 @@ Preprocessor::_expandMacroDefinition(const TMacroDesc &macroDesc,
         currArgTokens.clear();
 
         while ((currToken = mpLexer->GetNextToken()).mType == E_TOKEN_TYPE::SPACE)
-            ; // \note skip space tokens
+            currArgTokens.push_back({currToken});
         currArgTokens.push_back({currToken});
 
         while ((currToken = mpLexer->GetNextToken()).mType == E_TOKEN_TYPE::SPACE)
-            ;
+            currArgTokens.push_back({currToken});
 
         while (currToken.mType != E_TOKEN_TYPE::COMMA &&
                currToken.mType != E_TOKEN_TYPE::NEWLINE &&
