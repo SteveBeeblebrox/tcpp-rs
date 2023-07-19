@@ -905,7 +905,6 @@ std::string Preprocessor::Process() TCPP_NOEXCEPT {
                                     mContextStack.end());
                 break;
             case E_TOKEN_TYPE::CONCAT_OP:
-                // this feature doesn't work for now
                 appendString((currToken = mpLexer->GetNextToken()).mRawView);
                 break;
             case E_TOKEN_TYPE::STRINGIZE_OP:
