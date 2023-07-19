@@ -26,6 +26,7 @@
         \todo Add support of integral literals like L, u, etc
         \todo Implement built-in directives like #pragma, #error and others
         \todo Provide support of variadic macros
+        \todo Stringify macro values via intermediate steps
 */
 
 #pragma once
@@ -422,13 +423,13 @@ TToken Lexer::GetNextToken() TCPP_NOEXCEPT {
     }
 
     if (mCurrLine.empty()) {
-        // \note if it's still empty then we've reached the end of the source
+        /// \note if it's still empty then we've reached the end of the source
         if ((mCurrLine = _requestSourceLine()).empty()) {
             return mEOFToken;
         }
     }
 
-    // mCurrLine = _removeMultiLineComments(mCurrLine);
+    mCurrLine = _removeMultiLineComments(mCurrLine);
     return _scanTokens(mCurrLine);
 }
 
@@ -498,7 +499,7 @@ TToken Lexer::_scanTokens(std::string &inputLine) TCPP_NOEXCEPT {
             return {E_TOKEN_TYPE::SPACE, " ", mCurrLineIndex, mCurrPos};
         }
 
-        if (ch == '#') // \note it could be # operator or a directive
+        if (ch == '#') /// \note it could be # operator or a directive
         {
             // flush current blob
             if (!currStr.empty()) {
@@ -517,7 +518,7 @@ TToken Lexer::_scanTokens(std::string &inputLine) TCPP_NOEXCEPT {
                 }
             }
 
-            // \note custom directives
+            /// \note custom directives
             for (const auto &currDirectiveStr : mCustomDirectivesMap) {
                 if (inputLine.rfind(currDirectiveStr, 1) == 1) {
                     inputLine.erase(0, currDirectiveStr.length() + 1);
@@ -530,16 +531,16 @@ TToken Lexer::_scanTokens(std::string &inputLine) TCPP_NOEXCEPT {
 
             inputLine.erase(0, 1);
 
-            // \note if we've reached this line it's # operator not directive
+            /// \note if we've reached this line it's # operator not directive
             if (!inputLine.empty()) {
                 char nextCh = inputLine.front();
                 switch (nextCh) {
-                    case '#': // \note concatenation operator
+                    case '#': /// \note concatenation operator
                         inputLine.erase(0, 1);
                         ++mCurrPos;
                         return {E_TOKEN_TYPE::CONCAT_OP, "", mCurrLineIndex, mCurrPos};
                     default:
-                        if (nextCh != ' ') // \note stringification operator
+                        if (nextCh != ' ') /// \note stringification operator
                         {
                             return {E_TOKEN_TYPE::STRINGIZE_OP, "", mCurrLineIndex, mCurrPos};
                         }
@@ -647,18 +648,21 @@ TToken Lexer::_scanTokens(std::string &inputLine) TCPP_NOEXCEPT {
 
 std::string
 Lexer::_removeSingleLineComment(const std::string &line) const TCPP_NOEXCEPT {
+    return line; // TODO
+    
     std::string::size_type pos = line.find("//");
     return (pos == std::string::npos) ? line : line.substr(0, pos);
 }
 
 std::string
 Lexer::_removeMultiLineComments(const std::string &currInput) TCPP_NOEXCEPT {
+    return currInput; // TODO
     std::string input = currInput;
 
-    // \note here below all states of DFA are placed
+    /// \note here below all states of DFA are placed
     std::function<std::string(std::string &)> enterCommentBlock =
             [&enterCommentBlock, this](std::string &input) {
-                input.erase(0, 2); // \note remove /*
+                input.erase(0, 2); /// \note remove /*
 
                 while (input.rfind("*/", 0) != 0 && !input.empty()) {
                     input.erase(0, 1);
@@ -672,7 +676,7 @@ Lexer::_removeMultiLineComments(const std::string &currInput) TCPP_NOEXCEPT {
                     }
                 }
 
-                input.erase(0, 2); // \note remove */
+                input.erase(0, 2); /// \note remove */
 
                 return input;
             };
@@ -694,15 +698,15 @@ std::string Lexer::_requestSourceLine() TCPP_NOEXCEPT {
     }
 
     std::string sourceLine =
-            pCurrInputStream->ReadLine(); // _removeSingleLineComment(pCurrInputStream->ReadLine());
+            _removeSingleLineComment(pCurrInputStream->ReadLine());
     ++mCurrLineIndex;
 
-    /// \note join lines that were splitted with backslash sign
+    //// \note join lines that were splitted with backslash sign
     std::string::size_type pos = 0;
     while (((pos = sourceLine.find_first_of('\\')) != std::string::npos)) {
         if (pCurrInputStream->HasNextLine()) {
             sourceLine.replace(
-                    pos ? (pos - 1) : 0, std::string::npos,
+                    pos, std::string::npos,
                     _removeSingleLineComment(pCurrInputStream->ReadLine()));
             ++mCurrLineIndex;
 
@@ -843,7 +847,7 @@ std::string Preprocessor::Process() TCPP_NOEXCEPT {
         processedStr.append(str);
     };
 
-    // \note first stage of preprocessing, expand macros and include directives
+    /// \note first stage of preprocessing, expand macros and include directives
     while (mpLexer->HasNextToken()) {
         auto currToken = mpLexer->GetNextToken();
 
@@ -879,7 +883,7 @@ std::string Preprocessor::Process() TCPP_NOEXCEPT {
                     mConditionalBlocksStack.pop();
                 }
                 break;
-            case E_TOKEN_TYPE::IDENTIFIER: // \note try to expand some macro here
+            case E_TOKEN_TYPE::IDENTIFIER: /// \note try to expand some macro here
             {
                 auto iter = std::find_if(mSymTable.cbegin(), mSymTable.cend(),
                                          [&currToken](auto &&item) {
@@ -975,10 +979,10 @@ void Preprocessor::_createMacroDefinition() TCPP_NOEXCEPT {
             break;
         case E_TOKEN_TYPE::OPEN_BRACKET: // function line macro
         {
-            // \note parse arguments
+            /// \note parse arguments
             while (true) {
                 while ((currToken = mpLexer->GetNextToken()).mType == E_TOKEN_TYPE::SPACE)
-                    ; // \note skip space tokens
+                    ; /// \note skip space tokens
 
                 _expect(E_TOKEN_TYPE::IDENTIFIER, currToken.mType);
                 macroDesc.mArgsNames.push_back(currToken.mRawView);
@@ -995,7 +999,7 @@ void Preprocessor::_createMacroDefinition() TCPP_NOEXCEPT {
             currToken = mpLexer->GetNextToken();
             _expect(E_TOKEN_TYPE::SPACE, currToken.mType);
 
-            // \note parse macro's value
+            /// \note parse macro's value
             extractValue(macroDesc, *mpLexer);
         } break;
         default:
@@ -1044,7 +1048,7 @@ TCPP_NOEXCEPT {
 std::vector<TToken>
 Preprocessor::_expandMacroDefinition(const TMacroDesc &macroDesc,
                                      const TToken &idToken) TCPP_NOEXCEPT {
-    // \note expand object like macro with simple replacement
+    /// \note expand object like macro with simple replacement
     if (macroDesc.mArgsNames.empty()) {
         static const std::unordered_map<std::string, std::function<TToken()>>
                 systemMacrosTable{{"__LINE__", [&idToken]() {
@@ -1062,14 +1066,14 @@ Preprocessor::_expandMacroDefinition(const TMacroDesc &macroDesc,
 
     mContextStack.push_back(macroDesc.mName);
 
-    // \note function like macro's case
+    /// \note function like macro's case
     auto currToken = mpLexer->GetNextToken();
     _expect(E_TOKEN_TYPE::OPEN_BRACKET, currToken.mType);
 
     std::vector<std::vector<TToken>> processingTokens;
     std::vector<TToken> currArgTokens;
 
-    // \note read all arguments values
+    /// \note read all arguments values
     while (true) {
         currArgTokens.clear();
 
@@ -1104,7 +1108,7 @@ Preprocessor::_expandMacroDefinition(const TMacroDesc &macroDesc,
                 {E_ERROR_TYPE::INCONSISTENT_MACRO_ARITY, mpLexer->GetCurrLineIndex()});
     }
 
-    // \note execute macro's expansion
+    /// \note execute macro's expansion
     std::vector<TToken> replacementList{macroDesc.mValue.cbegin(),
                                         macroDesc.mValue.cend()};
     const auto &argsList = macroDesc.mArgsNames;
@@ -1243,7 +1247,7 @@ int Preprocessor::_evaluateExpression(
     std::vector<TToken> tokens{exprTokens.begin(), exprTokens.end()};
     tokens.push_back({E_TOKEN_TYPE::END});
 
-    // \note use recursive descent parsing technique to evaluate expression
+    /// \note use recursive descent parsing technique to evaluate expression
     auto evalCall = [this, &tokens]() { return 0; };
 
     auto evalPrimary = [this, &tokens, &evalCall]() {
@@ -1251,14 +1255,14 @@ int Preprocessor::_evaluateExpression(
 
         switch (currToken.mType) {
             case E_TOKEN_TYPE::IDENTIFIER: {
-                // \note macro call
+                /// \note macro call
                 if (tokens.size() >= 2 && tokens[1].mType == E_TOKEN_TYPE::OPEN_BRACKET) {
                     return evalCall();
                 }
 
                 tokens.erase(tokens.cbegin());
 
-                // \note simple identifier
+                /// \note simple identifier
                 return static_cast<int>(std::find_if(mSymTable.cbegin(), mSymTable.cend(),
                                                      [&currToken](auto &&item) {
                                                          return item.mName ==
