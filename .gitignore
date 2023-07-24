@@ -3,5 +3,6 @@
 Cargo.lock
 .idea/
 main.c
+temp.c
 .vscode
 output.txt
