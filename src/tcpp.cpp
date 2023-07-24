@@ -24,6 +24,9 @@ extern "C" {
             , const void* callback
             , void (*error)(const void* ,const TErrorInfo &)
             , IInputStream * (*_include)(const void*, const char*, bool)) {
+
+
+try {
         std::string sdata(data);
         StringInputStream sin(sdata);
         Lexer lex(sin);
@@ -37,6 +40,13 @@ extern "C" {
         char *cstr = new char[sdata.length() + 1];
         strcpy(cstr, x.c_str());
         return cstr;
+
+
+} catch(std::exception e) {
+    LOG(e.what());
+}
+
+
     }
 
 }

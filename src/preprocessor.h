@@ -42,6 +42,14 @@
 #include <unordered_set>
 #include <vector>
 
+#define DEBUG_LOGGING
+#ifdef DEBUG_LOGGING
+#include <iostream>
+#define LOG(arg) std::cout << "\u001b[36;1m\"" << #arg << "\": "  << arg << "\u001b[0m" << std::endl
+#else
+#define LOG(arg)
+#endif
+
 ///< Library's configs
 #define TCPP_DISABLE_EXCEPTIONS 1
 
@@ -959,11 +967,14 @@ void Preprocessor::_createMacroDefinition() TCPP_NOEXCEPT {
         while ((currToken = lexer.GetNextToken()).mType != E_TOKEN_TYPE::NEWLINE) {
             desc.mValue.push_back(currToken);
         }
+        
+        while(desc.mValue.back().mRawView == " ") desc.mValue.pop_back();
 
         if (desc.mValue.empty()) {
             desc.mValue.push_back(
                     {E_TOKEN_TYPE::NUMBER, "1", mpLexer->GetCurrLineIndex()});
         }
+
 
         _expect(E_TOKEN_TYPE::NEWLINE, currToken.mType);
     };
@@ -1077,12 +1088,7 @@ Preprocessor::_expandMacroDefinition(const TMacroDesc &macroDesc,
     while (true) {
         currArgTokens.clear();
 
-        while ((currToken = mpLexer->GetNextToken()).mType == E_TOKEN_TYPE::SPACE)
-            currArgTokens.push_back({currToken});
-        currArgTokens.push_back({currToken});
-
-        while ((currToken = mpLexer->GetNextToken()).mType == E_TOKEN_TYPE::SPACE)
-            currArgTokens.push_back({currToken});
+        currToken = mpLexer->GetNextToken();
 
         while (currToken.mType != E_TOKEN_TYPE::COMMA &&
                currToken.mType != E_TOKEN_TYPE::NEWLINE &&
@@ -1096,7 +1102,9 @@ Preprocessor::_expandMacroDefinition(const TMacroDesc &macroDesc,
             _expect(E_TOKEN_TYPE::COMMA, currToken.mType);
         }
 
-        processingTokens.push_back(currArgTokens);
+        if(currArgTokens.size() > 0) {
+            processingTokens.push_back(currArgTokens);
+        }
 
         if (currToken.mType == E_TOKEN_TYPE::CLOSE_BRACKET) {
             break;
